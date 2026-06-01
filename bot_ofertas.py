@@ -11,7 +11,7 @@ TELEGRAM_CHAT_ID = "-1003953711208"
 AFFILIATE_ID     = "lazaepvictor20230320140558"
 
 PRODUCTOS_POR_CICLO = 8
-HORAS_ENTRE_ENVIOS  = 2
+HORAS_ENTRE_ENVIOS  = 0
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -303,7 +303,7 @@ if __name__ == "__main__":
     print("=" * 50)
     mensaje_inicio()
     ciclo_principal()
-    schedule.every(HORAS_ENTRE_ENVIOS).hours.do(ciclo_principal)
+    schedule.every(10).minutes.do(ciclo_principal)
     print(f"\n[✓] Bot activo. Ctrl+C para detener.\n")
     while True:
         schedule.run_pending()
