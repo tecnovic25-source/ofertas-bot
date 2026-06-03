@@ -41,37 +41,54 @@ def obtener_token_ml():
         return None
 
 def obtener_productos_oferta(access_token):
-    """Busca productos usando el token de autorización para evitar el error 403."""
-    url = f"https://api.mercadolibre.com/sites/{SITE_ID}/search?q={QUERY_BUSQUEDA}&limit=20"
-    
-    headers = {
-        "Authorization": f"Bearer {access_token}"
+    """Busca productos en Mercado Libre."""
+    url = f"https://api.mercadolibre.com/sites/{SITE_ID}/search"
+
+    params = {
+        "q": QUERY_BUSQUEDA,
+        "limit": 20
     }
-    
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json"
+    }
+
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, params=params, headers=headers, timeout=20)
+
+        if response.status_code == 403:
+            logging.error(f"❌ Mercado Libre bloqueó la búsqueda. Respuesta: {response.text}")
+            return []
+
         response.raise_for_status()
         data = response.json()
-        
+
         ofertas = []
+
         for item in data.get("results", []):
             precio_original = item.get("original_price")
             precio_actual = item.get("price")
-            
+
             if precio_original and precio_actual and precio_actual < precio_original:
                 descuento_porcentaje = int((1 - (precio_actual / precio_original)) * 100)
-                
+
                 if descuento_porcentaje >= 10:
+                    thumbnail = item.get("thumbnail") or ""
+
                     ofertas.append({
-                        "id": item["id"],
-                        "titulo": item["title"],
+                        "id": item.get("id"),
+                        "titulo": item.get("title"),
                         "precio_actual": precio_actual,
                         "precio_original": precio_original,
                         "descuento": descuento_porcentaje,
-                        "link": item["permalink"],
-                        "imagen": item.get("thumbnail").replace("I.jpg", "O.jpg")
+                        "link": item.get("permalink"),
+                        "imagen": thumbnail.replace("I.jpg", "O.jpg") if thumbnail else thumbnail
                     })
+
         return ofertas
+
     except Exception as e:
         logging.error(f"Error al obtener datos de Mercado Libre: {e}")
         return []
