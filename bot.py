@@ -7,10 +7,6 @@ TELEGRAM_TOKEN = "8863123662:AAH54IhPr5pP0po5ev1igb6SlZBZWDekwrU"
 CHAT_ID = "-1003953711208"
 AFFILIATE_ID = "lazaepvictor20230320140558"
 
-# --- CREDENCIALES APP MERCADO LIBRE ---
-ML_CLIENT_ID = "4161006128754088"
-ML_CLIENT_SECRET = "WgGvo8pjksE1nsWFMABeYh0wznNeu4MQ"
-
 # --- CONFIGURACIÓN DEL BOT ---
 SITE_ID = "MLM" 
 QUERY_BUSQUEDA = "ofertas tecnologia" 
@@ -19,38 +15,21 @@ TIEMPO_ESPERA = 3600
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 productos_enviados = set()
 
-def obtener_token_ml():
-    """Obtiene el token de autorización de Mercado Libre usando tus credenciales."""
-    url = "https://api.mercadolibre.com/oauth/token"
-    payload = {
-        "grant_type": "client_credentials",
-        "client_id": ML_CLIENT_ID,
-        "client_secret": ML_CLIENT_SECRET
-    }
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    try:
-        response = requests.post(url, data=payload, headers=headers)
-        response.raise_for_status()
-        token = response.json().get("access_token")
-        logging.info("🔑 Token de Mercado Libre obtenido correctamente.")
-        return token
-    except Exception as e:
-        logging.error(f"❌ Error al obtener token de ML: {e}")
-        return None
-
-def obtener_productos_oferta(access_token):
-    """Busca productos usando el token de autorización para evitar el error 403."""
+def obtener_productos_oferta():
+    """Busca productos simulando ser un navegador web real."""
     url = f"https://api.mercadolibre.com/sites/{SITE_ID}/search?q={QUERY_BUSQUEDA}&limit=20"
     
+    # 🎭 EL DISFRAZ: Le decimos a ML que somos un navegador Chrome en Windows
     headers = {
-        "Authorization": f"Bearer {access_token}"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Accept-Language": "es-MX,es;q=0.9"
     }
     
     try:
+        # Hacemos la petición usando el disfraz
         response = requests.get(url, headers=headers)
-        response.raise_for_status()
+        response.raise_for_status() 
         data = response.json()
         
         ofertas = []
@@ -73,7 +52,10 @@ def obtener_productos_oferta(access_token):
                     })
         return ofertas
     except Exception as e:
-        logging.error(f"Error al obtener datos de Mercado Libre: {e}")
+        logging.error(f"❌ Error al obtener datos de Mercado Libre: {e}")
+        # Si sigue fallando, esto nos dirá exactamente por qué
+        if hasattr(e, 'response') and e.response is not None:
+            logging.error(f"Detalle del bloqueo: {e.response.text}")
         return []
 
 def generar_link_afiliado(url_original):
@@ -104,29 +86,24 @@ def enviar_mensaje_telegram(producto):
     try:
         response = requests.post(url_telegram, data=payload)
         response.raise_for_status()
-        logging.info(f"✅ Oferta enviada: {producto['titulo']}")
+        logging.info(f"✅ Oferta enviada a Telegram: {producto['titulo']}")
         return True
     except Exception as e:
         logging.error(f"❌ Error al enviar a Telegram: {e}")
         return False
 
 def iniciar_bot():
-    logging.info("🤖 Bot de Ofertas Iniciado. Buscando chollos...")
+    logging.info("🤖 Bot de Ofertas Iniciado. Buscando chollos (Modo Sigilo)...")
     
     while True:
-        # 1. Obtener el token de ML antes de buscar
-        token_ml = obtener_token_ml()
+        ofertas = obtener_productos_oferta()
         
-        if token_ml:
-            # 2. Buscar ofertas pasándole el token
-            ofertas = obtener_productos_oferta(token_ml)
-            
-            for oferta in ofertas:
-                if oferta["id"] not in productos_enviados:
-                    exito = enviar_mensaje_telegram(oferta)
-                    if exito:
-                        productos_enviados.add(oferta["id"])
-                        time.sleep(15) 
+        for oferta in ofertas:
+            if oferta["id"] not in productos_enviados:
+                exito = enviar_mensaje_telegram(oferta)
+                if exito:
+                    productos_enviados.add(oferta["id"])
+                    time.sleep(15) 
         
         logging.info(f"⏳ Esperando {TIEMPO_ESPERA / 60} minutos para la siguiente búsqueda...")
         time.sleep(TIEMPO_ESPERA)
