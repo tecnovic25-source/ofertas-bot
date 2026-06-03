@@ -1,3 +1,4 @@
+import cloudscraper
 import requests
 import time
 import logging
@@ -16,19 +17,18 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 productos_enviados = set()
 
 def obtener_productos_oferta():
-    """Busca productos simulando ser un navegador web real."""
+    """Busca productos evadiendo el TLS Fingerprinting de Mercado Libre."""
     url = f"https://api.mercadolibre.com/sites/{SITE_ID}/search?q={QUERY_BUSQUEDA}&limit=20"
     
-    # 🎭 EL DISFRAZ: Le decimos a ML que somos un navegador Chrome en Windows
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-        "Accept-Language": "es-MX,es;q=0.9"
-    }
+    # Aquí está la magia: creamos un scraper que emula el motor de red de un navegador
+    scraper = cloudscraper.create_scraper(browser={
+        'browser': 'chrome',
+        'platform': 'windows',
+        'desktop': True
+    })
     
     try:
-        # Hacemos la petición usando el disfraz
-        response = requests.get(url, headers=headers)
+        response = scraper.get(url)
         response.raise_for_status() 
         data = response.json()
         
@@ -53,9 +53,6 @@ def obtener_productos_oferta():
         return ofertas
     except Exception as e:
         logging.error(f"❌ Error al obtener datos de Mercado Libre: {e}")
-        # Si sigue fallando, esto nos dirá exactamente por qué
-        if hasattr(e, 'response') and e.response is not None:
-            logging.error(f"Detalle del bloqueo: {e.response.text}")
         return []
 
 def generar_link_afiliado(url_original):
@@ -93,7 +90,7 @@ def enviar_mensaje_telegram(producto):
         return False
 
 def iniciar_bot():
-    logging.info("🤖 Bot de Ofertas Iniciado. Buscando chollos (Modo Sigilo)...")
+    logging.info("🤖 Bot Iniciado. Evadiendo firewall y buscando chollos...")
     
     while True:
         ofertas = obtener_productos_oferta()
@@ -105,8 +102,8 @@ def iniciar_bot():
                     productos_enviados.add(oferta["id"])
                     time.sleep(15) 
         
-        logging.info(f"⏳ Esperando {TIEMPO_ESPERA / 60} minutos para la siguiente búsqueda...")
+        logging.info(f"⏳ Esperando {TIEMPO_ESPERA / 60} minutos...")
         time.sleep(TIEMPO_ESPERA)
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     iniciar_bot()
