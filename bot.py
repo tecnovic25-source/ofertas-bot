@@ -105,5 +105,5 @@ def iniciar_bot():
         logging.info(f"⏳ Esperando {TIEMPO_ESPERA / 60} minutos...")
         time.sleep(TIEMPO_ESPERA)
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     iniciar_bot()
