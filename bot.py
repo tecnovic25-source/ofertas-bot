@@ -1,7 +1,9 @@
 import cloudscraper
+from bs4 import BeautifulSoup
 import requests
 import time
 import logging
+import re
 
 # --- CONFIGURACIÓN DE CREDENCIALES ---
 TELEGRAM_TOKEN = "8863123662:AAH54IhPr5pP0po5ev1igb6SlZBZWDekwrU"
@@ -9,50 +11,78 @@ CHAT_ID = "-1003953711208"
 AFFILIATE_ID = "lazaepvictor20230320140558"
 
 # --- CONFIGURACIÓN DEL BOT ---
-SITE_ID = "MLM" 
-QUERY_BUSQUEDA = "ofertas tecnologia" 
+URL_BUSQUEDA = "https://listado.mercadolibre.com.mx/ofertas-tecnologia" 
 TIEMPO_ESPERA = 3600 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 productos_enviados = set()
 
-def obtener_productos_oferta():
-    """Busca productos evadiendo el TLS Fingerprinting de Mercado Libre."""
-    url = f"https://api.mercadolibre.com/sites/{SITE_ID}/search?q={QUERY_BUSQUEDA}&limit=20"
-    
-    # Aquí está la magia: creamos un scraper que emula el motor de red de un navegador
-    scraper = cloudscraper.create_scraper(browser={
-        'browser': 'chrome',
-        'platform': 'windows',
-        'desktop': True
-    })
+def obtener_productos_scraping():
+    """Descarga el HTML de Mercado Libre y extrae las ofertas manualmente."""
+    scraper = cloudscraper.create_scraper(browser={'browser': 'chrome','platform': 'windows','desktop': True})
     
     try:
-        response = scraper.get(url)
-        response.raise_for_status() 
-        data = response.json()
+        response = scraper.get(URL_BUSQUEDA)
+        response.raise_for_status()
         
+        # Parseamos el HTML de la página
+        soup = BeautifulSoup(response.text, 'html.parser')
         ofertas = []
-        for item in data.get("results", []):
-            precio_original = item.get("original_price")
-            precio_actual = item.get("price")
-            
-            if precio_original and precio_actual and precio_actual < precio_original:
-                descuento_porcentaje = int((1 - (precio_actual / precio_original)) * 100)
+        
+        # Buscamos las "tarjetas" de los productos en el HTML
+        items = soup.find_all('li', class_='ui-search-layout__item')
+        
+        for item in items[:20]: # Analizamos los primeros 20 resultados
+            try:
+                # 1. Extraer Título
+                titulo_elem = item.find('h2')
+                if not titulo_elem: continue
+                titulo = titulo_elem.text.strip()
                 
-                if descuento_porcentaje >= 10:
-                    ofertas.append({
-                        "id": item["id"],
-                        "titulo": item["title"],
-                        "precio_actual": precio_actual,
-                        "precio_original": precio_original,
-                        "descuento": descuento_porcentaje,
-                        "link": item["permalink"],
-                        "imagen": item.get("thumbnail").replace("I.jpg", "O.jpg")
-                    })
+                # 2. Extraer Link
+                link_elem = item.find('a', class_='ui-search-link')
+                if not link_elem: continue
+                link_crudo = link_elem.get('href')
+                link_limpio = link_crudo.split('?')[0] # Limpiamos rastreadores basura del link
+                
+                # 3. Extraer Precios (Esto es un poco de magia negra con el HTML)
+                # ML suele poner varios span con los precios. Si hay descuento, el primero es el viejo y el segundo el nuevo.
+                precios_elem = item.find_all('span', class_='andes-money-amount__fraction')
+                if len(precios_elem) >= 2:
+                    precio_original = float(precios_elem[0].text.replace(',', ''))
+                    precio_actual = float(precios_elem[1].text.replace(',', ''))
+                else:
+                    continue # Si no tiene dos precios, no está en oferta visible
+                
+                # 4. Extraer Imagen
+                img_elem = item.find('img')
+                imagen = img_elem.get('data-src') or img_elem.get('src')
+                
+                # 5. Generar ID único usando Regex
+                id_match = re.search(r'MLM[-_]\d+', link_limpio)
+                item_id = id_match.group() if id_match else link_limpio
+                
+                # 6. Calcular descuento final
+                if precio_actual < precio_original:
+                    descuento_porcentaje = int((1 - (precio_actual / precio_original)) * 100)
+                    
+                    if descuento_porcentaje >= 10:
+                        ofertas.append({
+                            "id": item_id,
+                            "titulo": titulo,
+                            "precio_actual": precio_actual,
+                            "precio_original": precio_original,
+                            "descuento": descuento_porcentaje,
+                            "link": link_limpio,
+                            "imagen": imagen
+                        })
+            except Exception as item_error:
+                # Si falla un producto (ej. diseño raro), lo ignoramos y pasamos al siguiente
+                continue
+                
         return ofertas
     except Exception as e:
-        logging.error(f"❌ Error al obtener datos de Mercado Libre: {e}")
+        logging.error(f"❌ Error al hacer scraping de la página: {e}")
         return []
 
 def generar_link_afiliado(url_original):
@@ -90,10 +120,10 @@ def enviar_mensaje_telegram(producto):
         return False
 
 def iniciar_bot():
-    logging.info("🤖 Bot Iniciado. Evadiendo firewall y buscando chollos...")
+    logging.info("🤖 Bot Iniciado. Leyendo HTML de Mercado Libre (Modo Web Scraper)...")
     
     while True:
-        ofertas = obtener_productos_oferta()
+        ofertas = obtener_productos_scraping()
         
         for oferta in ofertas:
             if oferta["id"] not in productos_enviados:
@@ -105,5 +135,5 @@ def iniciar_bot():
         logging.info(f"⏳ Esperando {TIEMPO_ESPERA / 60} minutos...")
         time.sleep(TIEMPO_ESPERA)
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     iniciar_bot()
