@@ -1,0 +1,17 @@
+BOT OFERTAS MERCADO LIBRE - V6
+
+El código ya tiene el nuevo grupo configurado:
+TELEGRAM_CHAT_ID=-1003961189932
+
+Si aparece Telegram error 401 Unauthorized, el problema es el token.
+Eso significa que el TELEGRAM_BOT_TOKEN del .env está mal, incompleto o revocado.
+
+PASOS RECOMENDADOS:
+1) Ejecuta configurar_bot.bat
+2) Pega el token ACTUAL de BotFather.
+3) Deja el Chat ID como -1003961189932 si te lo propone.
+4) Cuando diga "Token válido", ejecuta iniciar_bot.bat o:
+   py app.py
+
+Si quieres reenviar ofertas ya procesadas:
+- Borra published_offers.json
