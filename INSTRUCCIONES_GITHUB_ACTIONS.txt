@@ -1,0 +1,26 @@
+PASOS RAPIDOS PARA GITHUB ACTIONS
+
+1) Sube al repositorio solo estos archivos:
+   - app.py
+   - requirements.txt
+   - .github/workflows/ofertas-ml.yml
+   - .env.example
+   - .gitignore
+   - published_offers.json
+   - README.md
+   - INSTRUCCIONES_GITHUB_ACTIONS.txt
+
+2) NO subas .env con tokens reales.
+
+3) En GitHub entra a:
+   Settings -> Secrets and variables -> Actions -> New repository secret
+
+4) Crea estos secrets:
+   TELEGRAM_BOT_TOKEN = tu token actual de BotFather
+   TELEGRAM_CHAT_ID = -1003961189932
+   ML_AFFILIATE_ID = lazaepvictor20230320140558
+
+5) Para probarlo manualmente:
+   Actions -> Ofertas Mercado Libre -> Run workflow
+
+6) El bot se ejecutara automaticamente cada 10 minutos.
