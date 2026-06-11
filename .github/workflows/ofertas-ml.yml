@@ -1,0 +1,56 @@
+name: Ofertas Mercado Libre
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ofertas-ml-bot
+  cancel-in-progress: true
+
+jobs:
+  publicar-ofertas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Instalar Chromium de Playwright
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Ejecutar bot una vez
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ML_AFFILIATE_ID: ${{ secrets.ML_AFFILIATE_ID }}
+          MAX_OFFERS_PER_CYCLE: "8"
+          CYCLE_MINUTES: "10"
+          HEADLESS: "true"
+          RUN_ONCE: "true"
+        run: |
+          python app.py
+
+      - name: Guardar memoria de ofertas publicadas
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add published_offers.json
+          git diff --cached --quiet || git commit -m "Actualizar ofertas publicadas"
+          git push
