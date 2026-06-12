@@ -3,14 +3,14 @@ name: Ofertas Mercado Libre
 "on":
   workflow_dispatch:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "3,13,23,33,43,53 * * * *"
 
 permissions:
   contents: write
 
 concurrency:
   group: ofertas-ml-bot
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   publicar-ofertas:
