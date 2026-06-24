@@ -1,0 +1,36 @@
+INSTRUCCIONES RÁPIDAS - BOT OFERTAS ML V8
+
+1) Sube estos archivos al repo:
+   - app.py
+   - requirements.txt
+   - .github/workflows/ofertas-ml.yml
+   - .env.example
+   - .gitignore
+   - published_offers.json
+   - README.md
+   - INSTRUCCIONES_GITHUB_ACTIONS.txt
+
+2) NO subas .env con tokens reales.
+
+3) En GitHub crea Secrets:
+   Settings -> Secrets and variables -> Actions -> New repository secret
+
+   TELEGRAM_BOT_TOKEN = token nuevo de BotFather
+   TELEGRAM_CHAT_ID = -1003961189932
+   ML_AFFILIATE_ID = lazaepvictor20230320140558
+
+4) Prueba manual:
+   Actions -> Ofertas Mercado Libre -> Run workflow
+
+5) Si quieres que mande más ofertas, edita .github/workflows/ofertas-ml.yml:
+   MAX_OFFERS_PER_CYCLE: "15"
+   MAX_CANDIDATES_PER_CYCLE: "55"
+   MIN_DISCOUNT_PERCENT: "3"
+
+6) Si quieres buscar aún más, cambia:
+   ONLY_ML_MENTIONED: "false"
+
+   OJO: con false puede encontrar productos en ML que no necesariamente eran la oferta exacta del post original.
+
+7) Si manda repetidas o quieres reiniciar memoria:
+   abre published_offers.json, déjalo como [] y haz commit.
